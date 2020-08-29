@@ -1,0 +1,109 @@
+<link rel="import" href="../polymer/polymer-element.html">
+<link rel="import" href="../paper-card/paper-card.html">
+<link rel="import" href="../iron-ajax/iron-ajax.html">
+
+<dom-module id="pokedex-component">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+      paper-card{
+        --paper-card:{
+          width: 170px;
+          background-color:whitesmoke;
+          margin:5px
+        }
+        --paper-card-content:{
+          background-color:white;
+        }
+      }
+    </style>
+
+    <iron-ajax
+    auto
+    url="https://pokeapi.co/api/v2/pokemon/?limit={{limit}}"
+    handle-as="json"
+    on-response="generatePokedex"
+  >
+  </iron-ajax>
+
+    <template id="pokemones" is="dom-repeat" items="{{pokedex}}" as="pokemon">
+      <paper-card image="https://pokeres.bastionbot.org/images/pokemon/{{getIndex(index)}}.png">
+        <div class="card-content">
+          <p><strong>{{pokemon.name}}</strong></p>
+          <p>#{{getIndex(index)}}</p>
+          <ul>
+            <template is="dom-repeat" items="{{pokemon.types}}" as="tipos">
+              <li>{{tipos}}</li>
+            </template>
+          </ul>
+        </div>
+      </paper-card>
+    </template>
+  </template>
+
+  <script>
+    /**
+     * `pokedex-component`
+     * Componente de API Pokedex
+     *
+     * @customElement
+     * @polymer
+     * @demo demo/index.html
+     */
+    class PokedexComponent extends Polymer.Element {
+      static get is() { return 'pokedex-component'; }
+      static get properties() {
+        return {
+          pokedex: {
+            type: Array,
+            value: []
+          },
+          limit:{
+            type: Number,
+            value:50
+          }
+        };
+      }
+
+      async generatePokedex(e){
+        let respPokemon = e.detail.response.results;
+        let pokemon = [];
+        for(let i=0;i<respPokemon.length;i++){
+         await this.getPokemon(respPokemon[i].url).then(data =>{
+              let getTypes = data.types;
+              let tipos = [];
+              let newPoke = {};
+              getTypes.forEach(tipo =>{
+                tipos.push(tipo.type.name);
+              });
+              newPoke = {
+              id: i + 1,
+              name:respPokemon[i].name,
+              url:respPokemon[i].url,
+              types:tipos
+              };
+              pokemon.push(newPoke);
+          });
+          this.pokedex = pokemon;
+          this.$.pokemones.render();
+        }
+        
+      }
+
+      getIndex(index){
+        return index+1; 
+      }
+
+      async getPokemon(urlPokemon){
+        const data = await fetch(urlPokemon);
+        return await data.json();
+      }
+
+      
+    }
+
+    window.customElements.define(PokedexComponent.is, PokedexComponent);
+  </script>
+</dom-module>
